@@ -1,1 +1,1 @@
-# shift_planner
+# shift-planner
