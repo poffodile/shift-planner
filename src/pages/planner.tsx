@@ -1,4 +1,4 @@
-// ShiftPlanner.tsx — Now With Editable Cells, Note Popup, and Resizable Inputs
+// ShiftPlanner.tsx — Updated: Fix text visibility in light mode
 import Head from "next/head";
 import { useEffect, useState } from "react";
 
@@ -15,8 +15,9 @@ export default function ShiftPlanner() {
     day: "",
     content: "",
   });
+  const [editingNameIndex, setEditingNameIndex] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
 
-  // Compute the start of the week (Monday)
   const getWeekDates = () => {
     const today = new Date();
     const monday = new Date(today);
@@ -71,6 +72,35 @@ export default function ShiftPlanner() {
       }, {} as Record<string, string>),
     }));
     setNewName("");
+  };
+
+  const deletePerson = (index: number) => {
+    const nameToRemove = people[index];
+    setPeople((prev) => prev.filter((_, i) => i !== index));
+    setShiftData((prev) => {
+      const updated = { ...prev };
+      delete updated[nameToRemove];
+      return updated;
+    });
+  };
+
+  const startEditName = (index: number) => {
+    setEditingNameIndex(index);
+    setEditName(people[index]);
+  };
+
+  const saveEditedName = () => {
+    if (editingNameIndex === null || !editName.trim()) return;
+    const oldName = people[editingNameIndex];
+    const newPeople = [...people];
+    newPeople[editingNameIndex] = editName;
+    const newData = { ...shiftData };
+    newData[editName] = newData[oldName];
+    delete newData[oldName];
+    setPeople(newPeople);
+    setShiftData(newData);
+    setEditingNameIndex(null);
+    setEditName("");
   };
 
   const openNoteEditor = (person: string, day: string) => {
@@ -130,11 +160,11 @@ export default function ShiftPlanner() {
             placeholder="Add person name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="border px-2 py-1 rounded"
+            className="border px-2 py-1 rounded  dark:text-white light:text-pink-800 dark:bg-gray-800 light:bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
             onClick={addPerson}
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-pink-700">
             Add Row
           </button>
         </section>
@@ -151,19 +181,30 @@ export default function ShiftPlanner() {
                     {col}
                   </th>
                 ))}
+                <th className="border p-2 bg-gray-200">Actions</th>
               </tr>
             </thead>
             <tbody>
               {people.map((person, rowIdx) => (
                 <tr key={rowIdx} className="hover:bg-gray-50">
                   <td className="border p-2 font-medium whitespace-nowrap">
-                    {person}
+                    {editingNameIndex === rowIdx ? (
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={saveEditedName}
+                        className="border px-1 rounded text-black"
+                        autoFocus
+                      />
+                    ) : (
+                      person
+                    )}
                   </td>
                   {columns.map((col, colIdx) => (
                     <td key={colIdx} className="border p-2">
                       <div
                         onClick={() => openNoteEditor(person, col)}
-                        className="cursor-pointer min-w-[120px] max-w-[200px] truncate px-2 py-1 border rounded bg-white dark:bg-gray-800 hover:ring"
+                        className="cursor-pointer min-w-[120px] max-w-[200px] truncate px-2 py-1 border rounded bg-white dark:bg-gray-800 hover:ring text-black dark:text-white"
                         title={shiftData[person][col]}>
                         {shiftData[person][col] || (
                           <span className="text-gray-400">+ Add note</span>
@@ -171,13 +212,24 @@ export default function ShiftPlanner() {
                       </div>
                     </td>
                   ))}
+                  <td className="border p-2 text-center space-x-2">
+                    <button
+                      onClick={() => startEditName(rowIdx)}
+                      className="text-sm text-blue-600">
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deletePerson(rowIdx)}
+                      className="text-sm text-red-600">
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
 
-        {/* Note popup modal */}
         {notePopup.open && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-900 p-4 rounded shadow-lg w-96">
@@ -189,7 +241,7 @@ export default function ShiftPlanner() {
                 onChange={(e) =>
                   setNotePopup((prev) => ({ ...prev, content: e.target.value }))
                 }
-                className="w-full h-32 border rounded p-2 mb-4"
+                className="w-full h-32 border rounded p-2 mb-4 text-black"
               />
               <div className="flex justify-end gap-2">
                 <button
