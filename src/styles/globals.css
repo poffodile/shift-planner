@@ -7,7 +7,7 @@
 
 [data-theme="dark"] {
   --background: #181717;
-  --foreground: #e4e4e7; /* light gray */
+  --foreground: #e7e4e7; /* light gray */
 }
 
 [data-theme="light"] {
